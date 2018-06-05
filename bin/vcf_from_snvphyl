@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+from __future__ import division, print_function
+import argparse
+import datetime
+import os.path
+import re
+import sys
+import pandas
+from tqdm import tqdm
+from snptools.combattb_db import get_gene_data
+from snptools.itree import make_interval_trees
+from snptools.vcf import compute_annotation_string
+
+
+def get_snp_data(filename):
+    snp_data = pandas.read_csv(filename, sep='\t')
+    snp_data = snp_data[snp_data['Status'] == 'valid']
+    return snp_data
+
+
+def generate_variant_files(snp_data, plus_tree, minus_tree, output_dir, flanking_size=1000):
+    header = """##fileformat=VCFv4.1
+##fileDate={date}
+##reference={refname}
+##INFO=<ID=ANN,Number=.,Type=String,Description="Functional annotations: 'Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p | cDNA.pos / cDNA.length | CDS.pos / CDS.length | AA.pos / AA.length | Distance | ERRORS / WARNINGS / INFO' ">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT
+"""
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+    sample_names = snp_data.columns[4:]
+    samples = dict()
+    datestr = datetime.datetime.strftime(datetime.datetime.today(), '%Y%m%d')
+    reference_name = snp_data['#Chromosome'][0]
+    if '|' in reference_name:
+        reference_name = reference_name.strip('|').split('|')[-1]
+    for sample_name in sample_names:
+        samples[sample_name] = header.format(date=datestr, refname=reference_name)
+
+    for index, variant in tqdm(snp_data.iterrows(), total=len(snp_data)):
+        position = int(variant['Position'])
+        ref = variant['Reference']
+        for sample_name in sample_names:
+            alt = variant[sample_name]
+            if alt == ref:
+                continue
+            if plus_tree.overlaps(position) or minus_tree.overlaps(position):
+                # this is for variants that are in genes
+                overlaps = plus_tree[position] | minus_tree[position]
+                strand = 1 if plus_tree.overlaps(position) else -1
+                for overlap in sorted(overlaps):
+                    annotation = compute_annotation_string(overlap, position,
+                                                           ref, alt, strand, True)
+                    row = '\t'.join([reference_name, str(position), '.',
+                                    ref, alt, '.', '.', annotation]) + '\n'
+                    samples[sample_name] += row
+            else:
+                # intergenic variant - let's look upstream on both strands
+                if plus_tree.overlaps(position, position + flanking_size):
+                    overlap = sorted(plus_tree[position:position + flanking_size])[0]
+                    annotation = compute_annotation_string(overlap, position, ref, alt, 1, False)
+                    row = '\t'.join([reference_name, str(position), '.',
+                                    ref, alt, '.', '.', annotation]) + '\n'
+                    samples[sample_name] += row
+
+                if minus_tree.overlaps(position - flanking_size, position):
+                    overlap = sorted(minus_tree[position - flanking_size:position])[-1]
+                    annotation = compute_annotation_string(overlap, position, ref, alt, -1, False)
+                    row = '\t'.join([reference_name, str(position), '.',
+                                    ref, alt, '.', '.', annotation]) + '\n'
+                    samples[sample_name] += row
+            output_filename = os.path.join(output_dir, re.sub('[^\w-]', '_', sample_name) + '.vcf')
+            open(output_filename, 'w').write(samples[sample_name])
+
+
+parser = argparse.ArgumentParser(description='Make VCF files from SNVPhyl variant output table')
+parser.add_argument('snv_table_filename', nargs='?', default='./snvTable.tsv', help='File containing SNVPhyl output data (often called snvTable.tsv)')
+parser.add_argument('output_dir', nargs='?', default='./vcf', help='Directory to write VCF files to')
+args = parser.parse_args()
+
+# fetch the gene data from the COMBAT TB DB
+data = get_gene_data()
+if not data:
+    sys.exit("Problem getting data")
+# organise the genes into plus and minus strand interval trees
+(plus_tree, minus_tree) = make_interval_trees(data)
+#
+snp_data = get_snp_data(args.snv_table_filename)
+generate_variant_files(snp_data, plus_tree, minus_tree, args.output_dir)
