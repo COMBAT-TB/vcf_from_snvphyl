@@ -11,6 +11,12 @@ setup(
     keywords='neo4j,COMBAT-TB,vcf,tb',
     license="MIT",
     packages=['snptools'],
+    setup_requires=[
+        'pytest-runner',
+    ],
+    tests_require=[
+        'pytest',
+    ],
     install_requires=[
         'py2neo',
         'pandas',

@@ -1,6 +1,6 @@
 {% set name = "vcf_from_snvphyl" %}
 {% set version = "0.0.1" %}
-{% set sha256 = "fbb108d45f7b21d629d5554ffbeff09be22f11e0828fb2d357273ee3d732c9aa" %}
+{% set sha256 = "cbf59997571d051f3f1dd4c08cf144c74e7ca4620c4c8f8d1651e645f4756beb" %}
 {% set py2neo = "3.1.2" %}
 
 package:
@@ -25,6 +25,7 @@ requirements:
     - python
     - pip
     - py2neo {{ py2neo }}
+    - pytest
     - pandas
     - tqdm
   run:
@@ -39,6 +40,7 @@ test:
     - snptools
   commands:
     - vcf_from_snvphyl --help 2>&1 |grep SNVPhyl >/dev/null
+    - python3 -m pytest
 
 about:
   home: https://github.com/COMBAT-TB/{{ name }}
