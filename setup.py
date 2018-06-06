@@ -18,6 +18,8 @@ setup(
         'pytest',
     ],
     install_requires=[
+        'biopython',
+        'intervaltree',
         'py2neo',
         'pandas',
         'tqdm',

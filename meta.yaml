@@ -1,22 +1,18 @@
 {% set name = "vcf_from_snvphyl" %}
 {% set version = "0.0.1" %}
-{% set sha256 = "cbf59997571d051f3f1dd4c08cf144c74e7ca4620c4c8f8d1651e645f4756beb" %}
+{% set sha256 = "4aa93a679cef68b39933ccb582a2f2ac623d6996b517e42769a79cd086eaaf79" %}
 {% set py2neo = "3.1.2" %}
 
 package:
   name: {{ name|lower }}
-  version: {{ environ['VERSION'] or version }}
+  version: {{ version }}
 
 source:
   fn: {{ name }}-{{ version }}.tar.gz
   url: https://github.com/COMBAT-TB/{{ name }}/archive/{{ version }}.tar.gz
-  sha256: {{ environ['SHA'] or sha256 }}
+  sha256: {{ sha256 }}
 
 build:
-  script_env:
-    - SHA
-    - VERSION
-    - CONDA_BLD_PATH
   number: 0
   script: python -m pip install --no-deps --ignore-installed .
 
@@ -24,23 +20,29 @@ requirements:
   build:
     - python
     - pip
+    - biopython
+    - intervaltree
     - py2neo {{ py2neo }}
     - pytest
+    - pytest-runner
     - pandas
     - tqdm
   run:
     - python
-    - click
+    - biopython
+    - intervaltree
     - py2neo {{ py2neo }}
     - pandas
     - tqdm
 
 test:
+  requires:
+    - pytest
   imports:
     - snptools
   commands:
-    - vcf_from_snvphyl --help 2>&1 |grep SNVPhyl >/dev/null
-    - python3 -m pytest
+    - vcf_from_snvphyl  --help |grep SNVPhyl >/dev/null
+    - pytest --pyargs snptools
 
 about:
   home: https://github.com/COMBAT-TB/{{ name }}
