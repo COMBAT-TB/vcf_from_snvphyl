@@ -1,3 +1,4 @@
+import os.path
 import pytest
 import snptools.combattb_db
 import snptools.itree
@@ -6,7 +7,8 @@ from snptools.vcf import compute_annotation_string
 
 @pytest.fixture
 def gene_data():
-    data = snptools.combattb_db.get_gene_data()
+    stored_data = os.path.join(os.path.dirname(__file__), 'combattb_gene_list.cache')
+    data = snptools.combattb_db.get_gene_data(cache_filename=stored_data)
     return data
 
 
