@@ -8,8 +8,9 @@ DBHOST = os.environ.get("DATABASE_URI", "combattb.sanbi.ac.za")
 graph = Graph(host=DBHOST, bolt=True, password="")
 
 
-def get_gene_data():
-    cache_filename = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'combattb_gene_list.cache')
+def get_gene_data(cache_filename=None):
+    if not cache_filename:
+        cache_filename = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'combattb_gene_list.cache')
     if os.path.exists(cache_filename):
         data = json.load(open(cache_filename))
     else:
