@@ -1,6 +1,6 @@
 {% set name = "vcf_from_snvphyl" %}
 {% set version = "0.0.1" %}
-{% set sha256 = "823b6267fc5190a799c47cbefcc358ef7f4df0b914c8f7e5a112a551c449576b" %}
+{% set sha256 = "7fd11d76f604f0458570350f2ea50191bc9392cf09c0ba82d7057c75b81932f1" %}
 {% set py2neo = "3.1.2" %}
 
 package:
@@ -13,7 +13,7 @@ source:
   sha256: {{ sha256 }}
 
 build:
-  number: 0
+  number: 2
   script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
